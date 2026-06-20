@@ -3,15 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Random Forest Predictor — Mirindi</title>
+<title>Split Tensile Strength Predictor (Random Forest) — Mirindi &amp; Sinkhonde</title>
 <style>
-:root{--navy:#002766;--blue:#003CB3;--blue2:#1e63d6;--lblue:#6F9CEB;--ink:#1a2332;--muted:#5a6675;--line:#dbe2ee;--bg:#eef2f9;--ok:#0E7A0D;--warn:#9a6a00;--err:#b3001b;--card:#ffffff;}
+:root{--navy:#002766;--blue:#003CB3;--blue2:#1e63d6;--lblue:#6F9CEB;--ink:#1a2332;--muted:#5a6675;--line:#dbe2ee;--ok:#0E7A0D;--warn:#9a6a00;--err:#b3001b;--card:#ffffff;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Times New Roman',Georgia,serif;color:var(--ink);background:linear-gradient(135deg,#001b4d 0%,#003CB3 55%,#1e63d6 100%);min-height:100vh;padding:28px 16px;line-height:1.5;}
 .container{max-width:920px;margin:0 auto;background:var(--card);border-radius:18px;box-shadow:0 24px 70px rgba(0,15,60,.45);overflow:hidden;}
 .header{background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);color:#fff;padding:34px 32px;text-align:center;border-bottom:5px solid #ffd34d;}
-.header h1{font-size:2.0em;font-weight:bold;letter-spacing:-.3px;margin-bottom:8px;}
+.header h1{font-size:2.0em;font-weight:bold;letter-spacing:.3px;margin-bottom:8px;}
 .header .sub{font-size:1.1em;opacity:.95;}
+.header .authors{font-size:.92em;opacity:.85;margin-top:10px;font-style:italic;}
+.badge{display:inline-block;margin-top:14px;padding:5px 14px;border-radius:30px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);font-size:.85em;letter-spacing:.5px;}
 .content{padding:30px 34px 36px;}
 .intro{background:#f4f7fc;border-left:5px solid var(--blue);padding:16px 18px;border-radius:10px;margin-bottom:26px;}
 .intro h3{color:var(--navy);font-size:1.15em;margin-bottom:5px;}
@@ -19,116 +21,206 @@ body{font-family:'Times New Roman',Georgia,serif;color:var(--ink);background:lin
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px 20px;margin-bottom:24px;}
 .form-group{display:flex;flex-direction:column;gap:4px;}
 .form-group label{font-weight:bold;color:var(--navy);font-size:1.0em;}
-.form-group input{width:100%;padding:9px 11px;border:2px solid var(--line);border-radius:9px;font-size:1.05em;font-family:'Times New Roman',serif;text-align:center;background:#fafcff;transition:border-color .2s;}
-.form-group input:focus{outline:none;border-color:var(--blue);}
+.form-group .icon{color:var(--blue);font-weight:bold;}
+.form-group input{width:100%;padding:9px 11px;border:2px solid var(--line);border-radius:9px;font-size:1.05em;font-family:'Times New Roman',serif;text-align:center;background:#fafcff;transition:border-color .2s,box-shadow .2s;}
+.form-group input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,60,179,.15);}
+.form-group input.out{border-color:#e6a700;background:#fff8e6;}
+.form-group small{color:var(--muted);font-size:.85em;font-style:italic;}
 .button-group{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px;}
-button{padding:14px 18px;font-size:1.1em;font-weight:bold;border:none;border-radius:11px;cursor:pointer;transition:transform .15s;font-family:'Times New Roman',serif;}
+button{padding:14px 18px;font-size:1.1em;font-weight:bold;border:none;border-radius:11px;cursor:pointer;transition:transform .15s,box-shadow .2s,background .2s;font-family:'Times New Roman',serif;}
 .btn-predict{background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);color:#fff;}
-.btn-predict:hover{transform:translateY(-2px);}
+.btn-predict:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 22px rgba(0,40,120,.4);}
+.btn-predict:disabled{opacity:.55;cursor:not-allowed;}
 .btn-clear{background:#e7ecf5;color:var(--navy);}
+.btn-clear:hover{background:#d6deec;}
+.status{padding:10px 14px;border-radius:9px;margin-top:8px;font-weight:bold;text-align:center;font-size:.92em;}
+.status.loading{background:#fff3cd;color:var(--warn);}
+.status.success{background:#e2f3e3;color:var(--ok);}
+.status.error{background:#fbe1e4;color:var(--err);}
+.hidden{display:none;}
 .results{margin-top:26px;}
 .result-card{padding:26px;border-radius:14px;text-align:center;color:#fff;background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 70%,var(--blue2) 100%);box-shadow:0 10px 30px rgba(0,30,100,.35);}
 .result-card h3{font-size:1.1em;font-weight:600;opacity:.92;margin-bottom:6px;}
 .result-value{font-size:3.4em;font-weight:bold;line-height:1;margin:6px 0;}
 .result-unit{font-size:1.0em;opacity:.9;}
-.hidden{display:none;}
-.footer{text-align:center;padding:18px;color:#cfe0ff;font-size:.85em;}
-.model-info{background:#f4f7fc;padding:22px 24px;border-radius:12px;margin-top:30px;}
+.interval{margin-top:12px;font-size:1.05em;background:rgba(255,255,255,.14);display:inline-block;padding:7px 16px;border-radius:30px;border:1px solid rgba(255,255,255,.35);}
+.spread{margin-top:10px;font-size:.95em;opacity:.9;}
+.physics{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:.95em;background:#f4f7fc;color:var(--ink);border-left:5px solid var(--ok);text-align:left;}
+.physics.warn{border-left-color:#e6a700;}
+.physics b{color:var(--navy);}
+.model-info{background:#f4f7fc;padding:22px 24px;border-radius:12px;margin-top:30px;border:1px solid var(--line);}
 .model-info h4{color:var(--navy);font-size:1.25em;margin-bottom:10px;border-bottom:2px solid var(--lblue);padding-bottom:6px;}
+.model-info p{color:var(--muted);margin-bottom:7px;font-size:1.0em;}
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-top:14px;}
-.metric{background:#fff;padding:12px;border-radius:9px;border-top:4px solid var(--blue);text-align:center;}
+.metric{background:#fff;padding:12px;border-radius:9px;text-align:center;border-top:4px solid var(--blue);box-shadow:0 2px 6px rgba(0,0,0,.06);}
 .metric-label{color:var(--muted);font-size:.88em;margin-bottom:4px;}
 .metric-value{font-size:1.35em;font-weight:bold;color:var(--navy);}
+.footer{text-align:center;padding:18px;color:#cfe0ff;font-size:.85em;}
+@media(max-width:560px){.header h1{font-size:1.5em;}.result-value{font-size:2.6em;}.button-group{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 <div class="container">
-<div class="header">
-<h1>Random Forest Predictor</h1>
-<div class="sub">Client-side ensemble inference &middot; by Derrick Mirindi</div>
+  <div class="header">
+    <h1>Split Tensile Strength Predictor</h1>
+    <div class="sub">Random Forest Regression Ensemble</div>
+    <div class="authors">Developed by Derrick Mirindi &amp; David Sinkhonde</div>
+    <div class="badge">Rubberized Brick-Powder Concrete &middot; 2026</div>
+  </div>
+  <div class="content">
+    <div class="intro">
+      <h3>About this tool</h3>
+      <p>Predicts the split tensile strength (MPa) of rubberized brick-powder concrete from seven
+      mix-design and curing parameters using a trained Random Forest model (200 trees), with a 90%
+      prediction band and an ensemble-spread estimate. Runs entirely in your browser — no uploads.</p>
+    </div>
+    <form id="predictionForm">
+      <div class="grid">
+        <div class="form-group"><label><span class="icon">&#9656;</span> Cement (kg)</label>
+          <input type="number" id="cement" step="any" data-lo="293" data-hi="378" value="350" required><small>approx. 293 - 378</small></div>
+        <div class="form-group"><label><span class="icon">&#9656;</span> Brick powder (kg)</label>
+          <input type="number" id="brickPowder" step="any" data-lo="0" data-hi="119" value="0" required><small>approx. 0 - 119</small></div>
+        <div class="form-group"><label><span class="icon">&#9656;</span> Water (kg)</label>
+          <input type="number" id="water" step="any" data-lo="170" data-hi="170" value="170" required><small>approx. 170 (constant)</small></div>
+        <div class="form-group"><label><span class="icon">&#9656;</span> Fine aggregate (kg)</label>
+          <input type="number" id="fineAggregate" step="any" data-lo="583" data-hi="634" value="600" required><small>approx. 583 - 634</small></div>
+        <div class="form-group"><label><span class="icon">&#9656;</span> Coarse aggregate (kg)</label>
+          <input type="number" id="coarseAggregate" step="any" data-lo="1015" data-hi="1287" value="1100" required><small>approx. 1015 - 1287</small></div>
+        <div class="form-group"><label><span class="icon">&#9656;</span> Waste tire rubber (kg)</label>
+          <input type="number" id="rubber" step="any" data-lo="0" data-hi="102" value="0" required><small>approx. 0 - 102</small></div>
+        <div class="form-group"><label><span class="icon">&#9656;</span> Age (day)</label>
+          <input type="number" id="age" step="any" data-lo="7" data-hi="90" value="28" required><small>7, 28, 56 or 90 in dataset</small></div>
+      </div>
+      <div class="button-group">
+        <button type="submit" class="btn-predict">Predict split tensile strength</button>
+        <button type="button" class="btn-clear" onclick="clearForm()">Clear</button>
+      </div>
+    </form>
+    <div id="status" class="status hidden"></div>
+    <div id="resultsContainer" class="results hidden">
+      <div class="result-card">
+        <h3>Predicted Split Tensile Strength</h3>
+        <div class="result-value" id="strengthResult">0.000</div>
+        <div class="result-unit">MPa</div>
+        <div class="interval" id="intervalResult">90% interval: &mdash;</div>
+        <div class="spread" id="spreadResult">Ensemble spread (&plusmn;1&sigma; across trees): &mdash;</div>
+      </div>
+      <div class="physics" id="physicsBox"><b>Physics check:</b> <span id="physicsText">awaiting prediction&hellip;</span></div>
+    </div>
+    <div class="model-info">
+      <h4>Model details</h4>
+      <p><b>Algorithm:</b> Random Forest Regressor - ensemble of 200 decision trees (max depth 10),
+      averaging per-tree predictions; intrinsically nonlinear and robust to feature interactions.</p>
+      <p><b>Inputs (7):</b> Cement, Brick powder, Water, Fine aggregate, Coarse aggregate, Waste tire rubber, Age.</p>
+      <p><b>Output:</b> Split tensile strength (MPa), the mean over all decision trees (no scaling required).</p>
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Test R&sup2;</div><div class="metric-value" id="mR2">0.967</div></div>
+        <div class="metric"><div class="metric-label">RMSE (MPa)</div><div class="metric-value" id="mRMSE">0.097</div></div>
+        <div class="metric"><div class="metric-label">MAE (MPa)</div><div class="metric-value" id="mMAE">0.087</div></div>
+        <div class="metric"><div class="metric-label">MAPE (%)</div><div class="metric-value" id="mMAPE">3.89</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Random Forest model &middot; Pure-JS tree inference &middot; Times New Roman &middot; &copy; 2026 Mirindi &amp; Sinkhonde</div>
 </div>
-<div class="content">
-<div class="intro">
-<h3>About this tool</h3>
-<p>Enter the material mix parameters below and the embedded Random Forest model will estimate the target property instantly in your browser. No server, no uploads.</p>
-</div>
-<div class="grid" id="inputs">
-<div class="form-group"><label for="f0">Cement (kg/m³)</label><input type="number" id="f0" step="any" value="350"></div>
-<div class="form-group"><label for="f1">Water (kg/m³)</label><input type="number" id="f1" step="any" value="175"></div>
-<div class="form-group"><label for="f2">Fine Aggregate (kg/m³)</label><input type="number" id="f2" step="any" value="800"></div>
-<div class="form-group"><label for="f3">Coarse Aggregate (kg/m³)</label><input type="number" id="f3" step="any" value="1000"></div>
-<div class="form-group"><label for="f4">Age (days)</label><input type="number" id="f4" step="any" value="28"></div>
-</div>
-<div class="button-group">
-<button class="btn-predict" id="predictBtn">Predict</button>
-<button class="btn-clear" id="clearBtn">Reset</button>
-</div>
-<div class="results hidden" id="results">
-<div class="result-card">
-<h3>Predicted Value</h3>
-<div class="result-value" id="pred">--</div>
-<div class="result-unit">MPa</div>
-</div>
-</div>
-<div class="model-info">
-<h4>Model Details</h4>
-<p style="color:#5a6675">Random Forest regressor (bagged decision trees). Predictions are the mean across all trees in the ensemble.</p>
-<div class="metrics">
-<div class="metric"><div class="metric-label">Algorithm</div><div class="metric-value">Random Forest</div></div>
-<div class="metric"><div class="metric-label">Trees</div><div class="metric-value" id="mTrees">--</div></div>
-<div class="metric"><div class="metric-label">Features</div><div class="metric-value">5</div></div>
-<div class="metric"><div class="metric-label">Inference</div><div class="metric-value">In-browser</div></div>
-</div>
-</div>
-</div>
-<div class="footer">&copy; 2026 Derrick Mirindi &middot; Random Forest Predictor</div>
-</div>
+
+<!-- Embedded RF: defines RF_MODEL = {feature_order, trees:[...], metrics, q_hat_90} -->
+<script src="./embedded_model.js"></script>
 <script>
-var RF_MODEL = {
-features: ["f0","f1","f2","f3","f4"],
-trees: [
-{nodes:[{f:0,t:300,l:1,r:2},{f:4,t:14,l:-1,r:-2,leaf:true},{f:4,t:14,l:-3,r:-4,leaf:true}],leaves:[18.5,28.2,30.1,42.7]},
-{nodes:[{f:1,t:180,l:1,r:2},{f:0,t:320,l:-1,r:-2,leaf:true},{f:4,t:21,l:-3,r:-4,leaf:true}],leaves:[35.4,24.9,22.1,33.6]},
-{nodes:[{f:4,t:14,l:1,r:2},{f:0,t:310,l:-1,r:-2,leaf:true},{f:1,t:170,l:-3,r:-4,leaf:true}],leaves:[16.8,26.3,40.5,31.2]},
-{nodes:[{f:0,t:340,l:1,r:2},{f:1,t:175,l:-1,r:-2,leaf:true},{f:4,t:28,l:-3,r:-4,leaf:true}],leaves:[23.7,29.8,33.9,45.1]},
-{nodes:[{f:4,t:21,l:1,r:2},{f:0,t:300,l:-1,r:-2,leaf:true},{f:0,t:330,l:-3,r:-4,leaf:true}],leaves:[19.2,27.5,34.8,43.3]}
-]
-};
+let Q_HAT_90 = 0.16;
+const PHYS = {cement:+1, brickPowder:0, water:-1, fineAggregate:0, coarseAggregate:+1, rubber:-1, age:+1};
+const FIELD_ORDER = ['cement','brickPowder','water','fineAggregate','coarseAggregate','rubber','age'];
+let ready=false, TREES=null;
+const statusEl=document.getElementById('status');
+const predictBtn=document.querySelector('.btn-predict');
+const resultsContainer=document.getElementById('resultsContainer');
+
+function updateStatus(m,t){statusEl.textContent=m;statusEl.className='status '+t;statusEl.classList.remove('hidden');}
+predictBtn.disabled=true;
+function clearForm(){
+  const d={cement:350,brickPowder:0,water:170,fineAggregate:600,coarseAggregate:1100,rubber:0,age:28};
+  FIELD_ORDER.forEach(id=>{document.getElementById(id).value=d[id];document.getElementById(id).classList.remove('out');});
+  resultsContainer.classList.add('hidden');}
+FIELD_ORDER.forEach(id=>{const el=document.getElementById(id);
+  el.addEventListener('input',()=>{const v=parseFloat(el.value),lo=+el.dataset.lo,hi=+el.dataset.hi;
+    el.classList.toggle('out',!Number.isNaN(v)&&(v<lo||v>hi));});});
+
+// Single sklearn-style decision-tree traversal
 function predictTree(tree, x){
-var idx=0;
-while(true){
-var node=tree.nodes[idx];
-var go = x[node.f] <= node.t ? node.l : node.r;
-if(go<0){ return tree.leaves[-go-1]; }
-idx=go;
+  let node=0;
+  while(tree.feature[node] !== -2 && tree.children_left[node] !== -1){
+    node = x[tree.feature[node]] <= tree.threshold[node] ? tree.children_left[node] : tree.children_right[node];
+  }
+  return tree.value[node];
 }
-}
+// Forest mean + per-tree spread (free RF uncertainty)
 function predictForest(x){
-var sum=0;
-for(var i=0;i<RF_MODEL.trees.length;i++){ sum+=predictTree(RF_MODEL.trees[i], x); }
-return sum/RF_MODEL.trees.length;
+  const n=TREES.length, preds=new Float64Array(n); let sum=0;
+  for(let t=0;t<n;t++){const p=predictTree(TREES[t],x);preds[t]=p;sum+=p;}
+  const mean=sum/n; let v=0; for(let t=0;t<n;t++){const d=preds[t]-mean;v+=d*d;}
+  const std=Math.sqrt(v/Math.max(n-1,1));
+  const s=Array.from(preds).sort((a,b)=>a-b);
+  const q=p=>s[Math.min(s.length-1,Math.max(0,Math.round(p*(s.length-1))))];
+  return {mean,std,p05:q(0.05),p95:q(0.95)};
 }
-function readInputs(){
-var x=[];
-for(var i=0;i<RF_MODEL.features.length;i++){
-var el=document.getElementById("f"+i);
-var v=parseFloat(el.value);
-x.push(isNaN(v)?0:v);
+function getInputs(){return FIELD_ORDER.map(id=>parseFloat(document.getElementById(id).value));}
+
+function physicsCheck(baseX){
+  const hits=[];
+  for(let j=0;j<7;j++){const f=FIELD_ORDER[j]; if(PHYS[f]===0)continue;
+    const step=Math.max(Math.abs(baseX[j])*0.05,1e-3);
+    const up=baseX.slice(),dn=baseX.slice(); up[j]+=step; dn[j]-=step;
+    const grad=predictForest(up).mean-predictForest(dn).mean;
+    if(Math.abs(grad)<1e-9) continue;
+    hits.push(Math.sign(grad)===Math.sign(PHYS[f]));}
+  return hits.length ? hits.filter(Boolean).length/hits.length : 1;
 }
-return x;
+
+const yieldToRenderer=()=>new Promise(res=>{requestAnimationFrame(()=>setTimeout(res,0));});
+async function init(){
+  try{
+    if(typeof RF_MODEL==='undefined') throw new Error('RF_MODEL not found in embedded_model.js');
+    TREES=RF_MODEL.trees;
+    if(!TREES||!TREES.length) throw new Error('RF_MODEL.trees is empty');
+    const m=RF_MODEL.metrics||{};
+    if(typeof RF_MODEL.q_hat_90==='number') Q_HAT_90=RF_MODEL.q_hat_90;
+    if(typeof m.test_r2==='number')   document.getElementById('mR2').textContent=m.test_r2.toFixed(3);
+    if(typeof m.test_rmse==='number') document.getElementById('mRMSE').textContent=m.test_rmse.toFixed(3);
+    if(typeof m.test_mae==='number')  document.getElementById('mMAE').textContent=m.test_mae.toFixed(3);
+    if(typeof m.test_mape==='number') document.getElementById('mMAPE').textContent=m.test_mape.toFixed(2);
+    updateStatus('Preparing model…','loading'); await yieldToRenderer();
+    predictForest(new Array(7).fill(0));
+    ready=true; predictBtn.disabled=false;
+    updateStatus(`Ready — ${TREES.length} trees loaded. Enter a mix design and predict.`,'success');
+  }catch(err){console.error(err);updateStatus('Error initializing model: '+err.message,'error');}
 }
-document.getElementById("mTrees").textContent = RF_MODEL.trees.length;
-document.getElementById("predictBtn").addEventListener("click", function(){
-var x=readInputs();
-var y=predictForest(x);
-document.getElementById("pred").textContent = y.toFixed(2);
-document.getElementById("results").classList.remove("hidden");
+
+document.getElementById('predictionForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  try{
+    if(!ready){updateStatus('Model still initializing, please wait a moment.','error');return;}
+    const vals=getInputs();
+    if(vals.some(v=>Number.isNaN(v))){updateStatus('Please enter valid numbers for all fields.','error');return;}
+    const {mean,std,p05,p95}=predictForest(vals);   // RF uses RAW features (no scaling)
+    const strength=Math.max(mean,0);
+    document.getElementById('strengthResult').textContent=strength.toFixed(3);
+    const lo=Math.max(strength-Q_HAT_90,0), hi=strength+Q_HAT_90;
+    document.getElementById('intervalResult').textContent=`90% interval: ${lo.toFixed(3)} - ${hi.toFixed(3)} MPa`;
+    document.getElementById('spreadResult').innerHTML=
+      `Ensemble spread (&plusmn;1&sigma; across trees): &plusmn;${std.toFixed(3)} MPa &middot; tree range ${Math.max(p05,0).toFixed(2)}–${p95.toFixed(2)}`;
+    const phys=physicsCheck(vals), pct=Math.round(phys*100);
+    const box=document.getElementById('physicsBox'), txt=document.getElementById('physicsText');
+    if(phys>=0.75){box.className='physics';
+      txt.innerHTML=`<b>${pct}%</b> consistent with cementitious priors (more rubber/water -> lower strength; more cement/age -> higher).`;}
+    else{box.className='physics warn';
+      txt.innerHTML=`<b>${pct}%</b> physics consistency - interpret with caution; this mix may lie in a sparsely-sampled region.`;}
+    resultsContainer.classList.remove('hidden');
+    updateStatus('Prediction complete - split tensile strength: '+strength.toFixed(3)+' MPa','success');
+  }catch(err){console.error(err);updateStatus('Prediction error: '+err.message,'error');}
 });
-document.getElementById("clearBtn").addEventListener("click", function(){
-var d=[350,175,800,1000,28];
-for(var i=0;i<d.length;i++){ document.getElementById("f"+i).value=d[i]; }
-document.getElementById("results").classList.add("hidden");
-});
+
+function scheduleInit(){('requestIdleCallback' in window)?requestIdleCallback(()=>init(),{timeout:1500}):setTimeout(init,0);}
+(document.readyState==='complete')?scheduleInit():window.addEventListener('load',scheduleInit);
 </script>
 </body>
 </html>
