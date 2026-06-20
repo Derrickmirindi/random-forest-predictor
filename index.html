@@ -43,14 +43,13 @@ button{padding:14px 18px;font-size:1.1em;font-weight:bold;border:none;border-rad
 .result-card h3{font-size:1.1em;font-weight:600;opacity:.92;margin-bottom:6px;}
 .result-value{font-size:3.4em;font-weight:bold;line-height:1;margin:6px 0;}
 .result-unit{font-size:1.0em;opacity:.9;}
-.interval{margin-top:12px;font-size:1.05em;background:rgba(255,255,255,.14);display:inline-block;padding:7px 16px;border-radius:30px;border:1px solid rgba(255,255,255,.35);}
-.spread{margin-top:10px;font-size:.95em;opacity:.9;}
 .physics{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:.95em;background:#f4f7fc;color:var(--ink);border-left:5px solid var(--ok);text-align:left;}
 .physics.warn{border-left-color:#e6a700;}
 .physics b{color:var(--navy);}
 .model-info{background:#f4f7fc;padding:22px 24px;border-radius:12px;margin-top:30px;border:1px solid var(--line);}
 .model-info h4{color:var(--navy);font-size:1.25em;margin-bottom:10px;border-bottom:2px solid var(--lblue);padding-bottom:6px;}
 .model-info p{color:var(--muted);margin-bottom:7px;font-size:1.0em;}
+.model-info ul{color:var(--muted);margin:6px 0 7px 22px;font-size:1.0em;}
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-top:14px;}
 .metric{background:#fff;padding:12px;border-radius:9px;text-align:center;border-top:4px solid var(--blue);box-shadow:0 2px 6px rgba(0,0,0,.06);}
 .metric-label{color:var(--muted);font-size:.88em;margin-bottom:4px;}
@@ -61,71 +60,62 @@ button{padding:14px 18px;font-size:1.1em;font-weight:bold;border:none;border-rad
 </head>
 <body>
 <div class="container">
-  <div class="header">
-    <h1>Split Tensile Strength Predictor</h1>
-    <div class="sub">Random Forest Regression Ensemble</div>
-    <div class="authors">Developed by Derrick Mirindi &amp; David Sinkhonde</div>
-    <div class="badge">Rubberized Brick-Powder Concrete &middot; 2026</div>
-  </div>
-  <div class="content">
-    <div class="intro">
-      <h3>About this tool</h3>
-      <p>Predicts the split tensile strength (MPa) of rubberized brick-powder concrete from seven
-      mix-design and curing parameters using a trained Random Forest model (200 trees), with a 90%
-      prediction band and an ensemble-spread estimate. Runs entirely in your browser — no uploads.</p>
-    </div>
-    <form id="predictionForm">
-      <div class="grid">
-        <div class="form-group"><label><span class="icon">&#9656;</span> Cement (kg)</label>
-          <input type="number" id="cement" step="any" data-lo="293" data-hi="378" value="350" required><small>approx. 293 - 378</small></div>
-        <div class="form-group"><label><span class="icon">&#9656;</span> Brick powder (kg)</label>
-          <input type="number" id="brickPowder" step="any" data-lo="0" data-hi="119" value="0" required><small>approx. 0 - 119</small></div>
-        <div class="form-group"><label><span class="icon">&#9656;</span> Water (kg)</label>
-          <input type="number" id="water" step="any" data-lo="170" data-hi="170" value="170" required><small>approx. 170 (constant)</small></div>
-        <div class="form-group"><label><span class="icon">&#9656;</span> Fine aggregate (kg)</label>
-          <input type="number" id="fineAggregate" step="any" data-lo="583" data-hi="634" value="600" required><small>approx. 583 - 634</small></div>
-        <div class="form-group"><label><span class="icon">&#9656;</span> Coarse aggregate (kg)</label>
-          <input type="number" id="coarseAggregate" step="any" data-lo="1015" data-hi="1287" value="1100" required><small>approx. 1015 - 1287</small></div>
-        <div class="form-group"><label><span class="icon">&#9656;</span> Waste tire rubber (kg)</label>
-          <input type="number" id="rubber" step="any" data-lo="0" data-hi="102" value="0" required><small>approx. 0 - 102</small></div>
-        <div class="form-group"><label><span class="icon">&#9656;</span> Age (day)</label>
-          <input type="number" id="age" step="any" data-lo="7" data-hi="90" value="28" required><small>7, 28, 56 or 90 in dataset</small></div>
-      </div>
-      <div class="button-group">
-        <button type="submit" class="btn-predict">Predict split tensile strength</button>
-        <button type="button" class="btn-clear" onclick="clearForm()">Clear</button>
-      </div>
-    </form>
-    <div id="status" class="status hidden"></div>
-    <div id="resultsContainer" class="results hidden">
-      <div class="result-card">
-        <h3>Predicted Split Tensile Strength</h3>
-        <div class="result-value" id="strengthResult">0.000</div>
-        <div class="result-unit">MPa</div>
-        <div class="interval" id="intervalResult">90% interval: &mdash;</div>
-        <div class="spread" id="spreadResult">Ensemble spread (&plusmn;1&sigma; across trees): &mdash;</div>
-      </div>
-      <div class="physics" id="physicsBox"><b>Physics check:</b> <span id="physicsText">awaiting prediction&hellip;</span></div>
-    </div>
-    <div class="model-info">
-      <h4>Model details</h4>
-      <p><b>Algorithm:</b> Random Forest Regressor - ensemble of 200 decision trees (max depth 10),
-      averaging per-tree predictions; intrinsically nonlinear and robust to feature interactions.</p>
-      <p><b>Inputs (7):</b> Cement, Brick powder, Water, Fine aggregate, Coarse aggregate, Waste tire rubber, Age.</p>
-      <p><b>Output:</b> Split tensile strength (MPa), the mean over all decision trees (no scaling required).</p>
-      <div class="metrics">
-        <div class="metric"><div class="metric-label">Test R&sup2;</div><div class="metric-value" id="mR2">0.967</div></div>
-        <div class="metric"><div class="metric-label">RMSE (MPa)</div><div class="metric-value" id="mRMSE">0.097</div></div>
-        <div class="metric"><div class="metric-label">MAE (MPa)</div><div class="metric-value" id="mMAE">0.087</div></div>
-        <div class="metric"><div class="metric-label">MAPE (%)</div><div class="metric-value" id="mMAPE">3.89</div></div>
-      </div>
-    </div>
-  </div>
-  <div class="footer">Random Forest model &middot; Pure-JS tree inference &middot; Times New Roman &middot; &copy; 2026 Mirindi &amp; Sinkhonde</div>
+<div class="header">
+<h1>Split Tensile Strength Predictor</h1>
+<div class="sub">Random Forest Regression Ensemble</div>
+<div class="authors">Developed by Derrick Mirindi &amp; David Sinkhonde</div>
+<div class="badge">Rubberized Brick-Powder Concrete &middot; 2026</div>
 </div>
-
-<!-- Embedded RF: defines RF_MODEL = {feature_order, trees:[...], metrics, q_hat_90} -->
-<script src="./embedded_model.js"></script>
+<div class="content">
+<div class="intro">
+<h3>About this tool</h3>
+<p>Predicts the split tensile strength (MPa) of rubberized brick-powder concrete from seven mix-design and curing parameters using a trained Random Forest model (200 trees).</p>
+</div>
+<form id="predictionForm">
+<div class="grid">
+<div class="form-group"><label><span class="icon">&#9656;</span> Cement (kg)</label><input type="number" id="cement" step="any" data-lo="293" data-hi="378" value="350" required><small>approx. 293 - 378</small></div>
+<div class="form-group"><label><span class="icon">&#9656;</span> Brick powder (kg)</label><input type="number" id="brickPowder" step="any" data-lo="0" data-hi="119" value="0" required><small>approx. 0 - 119</small></div>
+<div class="form-group"><label><span class="icon">&#9656;</span> Water (kg)</label><input type="number" id="water" step="any" data-lo="170" data-hi="170" value="170" required><small>approx. 170 (constant)</small></div>
+<div class="form-group"><label><span class="icon">&#9656;</span> Fine aggregate (kg)</label><input type="number" id="fineAggregate" step="any" data-lo="583" data-hi="634" value="600" required><small>approx. 583 - 634</small></div>
+<div class="form-group"><label><span class="icon">&#9656;</span> Coarse aggregate (kg)</label><input type="number" id="coarseAggregate" step="any" data-lo="1015" data-hi="1287" value="1100" required><small>approx. 1015 - 1287</small></div>
+<div class="form-group"><label><span class="icon">&#9656;</span> Waste tire rubber (kg)</label><input type="number" id="rubber" step="any" data-lo="0" data-hi="102" value="0" required><small>approx. 0 - 102</small></div>
+<div class="form-group"><label><span class="icon">&#9656;</span> Age (day)</label><input type="number" id="age" step="any" data-lo="7" data-hi="90" value="28" required><small>7, 28, 56 or 90 in dataset</small></div>
+</div>
+<div class="button-group">
+<button type="submit" class="btn-predict">Predict split tensile strength</button>
+<button type="button" class="btn-clear" onclick="clearForm()">Clear</button>
+</div>
+</form>
+<div id="status" class="status hidden"></div>
+<div id="resultsContainer" class="results hidden">
+<div class="result-card">
+<h3>Predicted Split Tensile Strength</h3>
+<div class="result-value" id="strengthResult">0.000</div>
+<div class="result-unit">MPa</div>
+</div>
+<div class="physics" id="physicsBox"><b>Physics check:</b> <span id="physicsText">awaiting prediction…</span></div>
+</div>
+<div class="model-info">
+<h4>Model details</h4>
+<p><b>Algorithm:</b> Random Forest Regressor</p>
+<ul>
+<li>number of estimators: 200</li>
+<li>maximum tree depth: 10</li>
+<li>random state: 42</li>
+</ul>
+<p><b>Inputs (7):</b> Cement, Brick powder, Water, Fine aggregate, Coarse aggregate, Waste tire rubber, Age.</p>
+<p><b>Output:</b> Split tensile strength (MPa).</p>
+<div class="metrics">
+<div class="metric"><div class="metric-label">Test R&sup2;</div><div class="metric-value" id="mR2">0.9672</div></div>
+<div class="metric"><div class="metric-label">RMSE (MPa)</div><div class="metric-value" id="mRMSE">0.0972</div></div>
+<div class="metric"><div class="metric-label">MAE (MPa)</div><div class="metric-value" id="mMAE">0.0869</div></div>
+<div class="metric"><div class="metric-label">MAPE (%)</div><div class="metric-value" id="mMAPE">3.8908</div></div>
+</div>
+</div>
+</div>
+<div class="footer">Random Forest model &middot; Pure-JS tree inference &middot; Times New Roman &middot; &copy; 2026 Mirindi &amp; Sinkhonde</div>
+</div>
+<script src="embedded_model.js"></script>
 <script>
 let Q_HAT_90 = 0.16;
 const PHYS = {cement:+1, brickPowder:0, water:-1, fineAggregate:0, coarseAggregate:+1, rubber:-1, age:+1};
@@ -134,91 +124,71 @@ let ready=false, TREES=null;
 const statusEl=document.getElementById('status');
 const predictBtn=document.querySelector('.btn-predict');
 const resultsContainer=document.getElementById('resultsContainer');
-
 function updateStatus(m,t){statusEl.textContent=m;statusEl.className='status '+t;statusEl.classList.remove('hidden');}
 predictBtn.disabled=true;
 function clearForm(){
-  const d={cement:350,brickPowder:0,water:170,fineAggregate:600,coarseAggregate:1100,rubber:0,age:28};
-  FIELD_ORDER.forEach(id=>{document.getElementById(id).value=d[id];document.getElementById(id).classList.remove('out');});
-  resultsContainer.classList.add('hidden');}
+const d={cement:350,brickPowder:0,water:170,fineAggregate:600,coarseAggregate:1100,rubber:0,age:28};
+FIELD_ORDER.forEach(id=>{document.getElementById(id).value=d[id];document.getElementById(id).classList.remove('out');});
+resultsContainer.classList.add('hidden');}
 FIELD_ORDER.forEach(id=>{const el=document.getElementById(id);
-  el.addEventListener('input',()=>{const v=parseFloat(el.value),lo=+el.dataset.lo,hi=+el.dataset.hi;
-    el.classList.toggle('out',!Number.isNaN(v)&&(v<lo||v>hi));});});
-
-// Single sklearn-style decision-tree traversal
+el.addEventListener('input',()=>{const v=parseFloat(el.value),lo=+el.dataset.lo,hi=+el.dataset.hi;
+el.classList.toggle('out',!Number.isNaN(v)&&(v<lo||v>hi));});});
 function predictTree(tree, x){
-  let node=0;
-  while(tree.feature[node] !== -2 && tree.children_left[node] !== -1){
-    node = x[tree.feature[node]] <= tree.threshold[node] ? tree.children_left[node] : tree.children_right[node];
-  }
-  return tree.value[node];
+let node=0;
+while(tree.feature[node] !== -2 && tree.children_left[node] !== -1){
+node = x[tree.feature[node]] <= tree.threshold[node] ? tree.children_left[node] : tree.children_right[node];
 }
-// Forest mean + per-tree spread (free RF uncertainty)
+return tree.value[node];
+}
 function predictForest(x){
-  const n=TREES.length, preds=new Float64Array(n); let sum=0;
-  for(let t=0;t<n;t++){const p=predictTree(TREES[t],x);preds[t]=p;sum+=p;}
-  const mean=sum/n; let v=0; for(let t=0;t<n;t++){const d=preds[t]-mean;v+=d*d;}
-  const std=Math.sqrt(v/Math.max(n-1,1));
-  const s=Array.from(preds).sort((a,b)=>a-b);
-  const q=p=>s[Math.min(s.length-1,Math.max(0,Math.round(p*(s.length-1))))];
-  return {mean,std,p05:q(0.05),p95:q(0.95)};
+const n=TREES.length, preds=new Float64Array(n); let sum=0;
+for(let t=0;t<n;t++){const p=predictTree(TREES[t],x);preds[t]=p;sum+=p;}
+const mean=sum/n;
+return {mean};
 }
 function getInputs(){return FIELD_ORDER.map(id=>parseFloat(document.getElementById(id).value));}
-
 function physicsCheck(baseX){
-  const hits=[];
-  for(let j=0;j<7;j++){const f=FIELD_ORDER[j]; if(PHYS[f]===0)continue;
-    const step=Math.max(Math.abs(baseX[j])*0.05,1e-3);
-    const up=baseX.slice(),dn=baseX.slice(); up[j]+=step; dn[j]-=step;
-    const grad=predictForest(up).mean-predictForest(dn).mean;
-    if(Math.abs(grad)<1e-9) continue;
-    hits.push(Math.sign(grad)===Math.sign(PHYS[f]));}
-  return hits.length ? hits.filter(Boolean).length/hits.length : 1;
+const hits=[];
+for(let j=0;j<7;j++){const f=FIELD_ORDER[j];
+if(PHYS[f]===0)continue;
+const step=Math.max(Math.abs(baseX[j])*0.05,1e-3);
+const up=baseX.slice(),dn=baseX.slice(); up[j]+=step; dn[j]-=step;
+const grad=predictForest(up).mean-predictForest(dn).mean;
+if(Math.abs(grad)<1e-9) continue;
+hits.push(Math.sign(grad)===Math.sign(PHYS[f]));}
+return hits.length ? hits.filter(Boolean).length/hits.length : 1;
 }
-
 const yieldToRenderer=()=>new Promise(res=>{requestAnimationFrame(()=>setTimeout(res,0));});
 async function init(){
-  try{
-    if(typeof RF_MODEL==='undefined') throw new Error('RF_MODEL not found in embedded_model.js');
-    TREES=RF_MODEL.trees;
-    if(!TREES||!TREES.length) throw new Error('RF_MODEL.trees is empty');
-    const m=RF_MODEL.metrics||{};
-    if(typeof RF_MODEL.q_hat_90==='number') Q_HAT_90=RF_MODEL.q_hat_90;
-    if(typeof m.test_r2==='number')   document.getElementById('mR2').textContent=m.test_r2.toFixed(3);
-    if(typeof m.test_rmse==='number') document.getElementById('mRMSE').textContent=m.test_rmse.toFixed(3);
-    if(typeof m.test_mae==='number')  document.getElementById('mMAE').textContent=m.test_mae.toFixed(3);
-    if(typeof m.test_mape==='number') document.getElementById('mMAPE').textContent=m.test_mape.toFixed(2);
-    updateStatus('Preparing model…','loading'); await yieldToRenderer();
-    predictForest(new Array(7).fill(0));
-    ready=true; predictBtn.disabled=false;
-    updateStatus(`Ready — ${TREES.length} trees loaded. Enter a mix design and predict.`,'success');
-  }catch(err){console.error(err);updateStatus('Error initializing model: '+err.message,'error');}
+try{
+if(typeof RF_MODEL==='undefined') throw new Error('RF_MODEL not found in embedded_model.js');
+TREES=RF_MODEL.trees;
+if(!TREES||!TREES.length) throw new Error('RF_MODEL.trees is empty');
+if(typeof RF_MODEL.q_hat_90==='number') Q_HAT_90=RF_MODEL.q_hat_90;
+updateStatus('Preparing model…','loading');
+await yieldToRenderer();
+predictForest(new Array(7).fill(0));
+ready=true; predictBtn.disabled=false;
+updateStatus(`Ready — ${TREES.length} trees loaded. Enter a mix design and predict.`,'success');
+}catch(err){console.error(err);updateStatus('Error initializing model: '+err.message,'error');}
 }
-
 document.getElementById('predictionForm').addEventListener('submit',function(e){
-  e.preventDefault();
-  try{
-    if(!ready){updateStatus('Model still initializing, please wait a moment.','error');return;}
-    const vals=getInputs();
-    if(vals.some(v=>Number.isNaN(v))){updateStatus('Please enter valid numbers for all fields.','error');return;}
-    const {mean,std,p05,p95}=predictForest(vals);   // RF uses RAW features (no scaling)
-    const strength=Math.max(mean,0);
-    document.getElementById('strengthResult').textContent=strength.toFixed(3);
-    const lo=Math.max(strength-Q_HAT_90,0), hi=strength+Q_HAT_90;
-    document.getElementById('intervalResult').textContent=`90% interval: ${lo.toFixed(3)} - ${hi.toFixed(3)} MPa`;
-    document.getElementById('spreadResult').innerHTML=
-      `Ensemble spread (&plusmn;1&sigma; across trees): &plusmn;${std.toFixed(3)} MPa &middot; tree range ${Math.max(p05,0).toFixed(2)}–${p95.toFixed(2)}`;
-    const phys=physicsCheck(vals), pct=Math.round(phys*100);
-    const box=document.getElementById('physicsBox'), txt=document.getElementById('physicsText');
-    if(phys>=0.75){box.className='physics';
-      txt.innerHTML=`<b>${pct}%</b> consistent with cementitious priors (more rubber/water -> lower strength; more cement/age -> higher).`;}
-    else{box.className='physics warn';
-      txt.innerHTML=`<b>${pct}%</b> physics consistency - interpret with caution; this mix may lie in a sparsely-sampled region.`;}
-    resultsContainer.classList.remove('hidden');
-    updateStatus('Prediction complete - split tensile strength: '+strength.toFixed(3)+' MPa','success');
-  }catch(err){console.error(err);updateStatus('Prediction error: '+err.message,'error');}
+e.preventDefault();
+try{
+if(!ready){updateStatus('Model still initializing, please wait a moment.','error');return;}
+const vals=getInputs();
+if(vals.some(v=>Number.isNaN(v))){updateStatus('Please enter valid numbers for all fields.','error');return;}
+const {mean}=predictForest(vals);
+const strength=Math.max(mean,0);
+document.getElementById('strengthResult').textContent=strength.toFixed(3);
+const phys=physicsCheck(vals), pct=Math.round(phys*100);
+const box=document.getElementById('physicsBox'), txt=document.getElementById('physicsText');
+if(phys>=0.75){box.className='physics'; txt.innerHTML=`<b>${pct}%</b> consistent with cementitious priors (more rubber/water -> lower strength; more cement/age -> higher).`;}
+else{box.className='physics warn'; txt.innerHTML=`<b>${pct}%</b> physics consistency - interpret with caution; this mix may lie in a sparsely-sampled region.`;}
+resultsContainer.classList.remove('hidden');
+updateStatus('Prediction complete - split tensile strength: '+strength.toFixed(3)+' MPa','success');
+}catch(err){console.error(err);updateStatus('Prediction error: '+err.message,'error');}
 });
-
 function scheduleInit(){('requestIdleCallback' in window)?requestIdleCallback(()=>init(),{timeout:1500}):setTimeout(init,0);}
 (document.readyState==='complete')?scheduleInit():window.addEventListener('load',scheduleInit);
 </script>
